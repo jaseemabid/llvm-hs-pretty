@@ -24,26 +24,20 @@ import System.Environment
 
 readir :: FilePath -> IO ()
 readir fname = do
-  putStrLn $ "Test: " ++ fname
-  putStrLn $ replicate 80 '='
-  putStrLn fname
-  putStrLn $ replicate 80 '='
   str <- readFile fname
   withContext $ \ctx -> do
     res <- runExceptT $ M.withModuleFromLLVMAssembly ctx str $ \mod -> do
       ast <- M.moduleAST mod
-      putStrLn $ ppShow ast
       let str = ppllvm ast
-      T.putStrLn str
       T.writeFile ("tests/output" </> takeFileName fname) str
       trip <- runExceptT $ M.withModuleFromLLVMAssembly ctx (T.unpack str) (const $ return ())
       case trip of
         Left err -> do
-          putStrLn "Error reading output:"
+          putStrLn $ "Error : " ++ fname
           putStrLn err
           writeFile ("tests/output" </> takeFileName fname) err
           exitFailure
-        Right ast -> putStrLn "Round Tripped!"
+        Right ast -> putStrLn $ "OK : " ++ fname
 
     case res of
       Left err -> do
@@ -55,6 +49,7 @@ readir fname = do
 
 main :: IO ()
 main = do
+  putStrLn ""
   files <- getArgs
 
   case files of
